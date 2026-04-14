@@ -8,7 +8,7 @@ Hey all -- sharing something I built for myself and want to open up.
 
 **Chowdahh** (like "chowder" with a Boston accent) is a guided content system designed for agents. Not a wrapper around an existing news API -- it processes news into clusters, synthesizes topics, and serves display-ready cards with images, attribution, and honest controls. I wanted to do this cool thing for myself, and now I'm sharing the token processing and synthesis capacity so anyone's agent can use it on any UI.
 
-The interesting part is the **guidance envelope**. Every API response tells your agent what happened and what to do next:
+The interesting part is the **guidance envelope**. Most API responses include a guidance block that tells your agent what happened and suggests what to do next:
 
 > "Here are 5 cards. I can tilt toward science, send more, or switch to good news. Here's the exact API call for each option."
 

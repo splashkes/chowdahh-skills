@@ -6,12 +6,12 @@ These skills let your agent browse news, search topics, stream radio, submit con
 
 ## What Makes This Different
 
-**The guidance envelope.** Every API response includes a `guidance` block that tells your agent what happened and what to do next. Your agent doesn't need to hardcode conversation flow -- the API teaches it.
+**The guidance envelope.** Most API responses include a `guidance` block that tells your agent what happened and suggests what to do next. `guidance.next_best_actions` is present on many responses but is optional — your agent should always be able to fall back to the documented `/api/v1` endpoints directly.
 
 ```json
 {
   "guidance": {
-    "status_explanation": "Feed session started with 6 cards.",
+    "status_explanation": "Feed session started with 6 items.",
     "next_best_actions": [
       {
         "action_id": "send_more",
@@ -49,7 +49,7 @@ curl -s 'https://chowdahh.com/api/v1/streams/top?limit=3' | jq .
 
 | Skill | Emoji | What It Does |
 |-------|-------|-------------|
-| **chowdahh** | :stew: | Browse feeds, search topics, drill into stories, replay history, start radio |
+| **chowdahh** | :stew: | Browse feeds, search topics, start radio (anonymous); replay history (person token) |
 | **chowdahh-preferences** | :level_slider: | Sync followed/avoided topics, tone, delivery style, budget |
 | **chowdahh-feedback** | :speech_balloon: | Content requests, bug reports, feature requests, quality flags |
 | **chowdahh-submit** | :mailbox_with_mail: | Submit stories, articles, poems, images, audio, collections |
@@ -61,10 +61,10 @@ The adoption path mirrors how people actually use content systems: **read** firs
 1. Agent installs `chowdahh`
 2. User says "what's happening today?"
 3. Agent calls `POST /api/v1/feed-sessions` with `{"intent": "browse", "budget_minutes": 5}`
-4. API returns cards with headlines, summaries, images, and controls
-5. Agent reads `guidance.next_best_actions` to know what to offer next
-6. User says "more science" -- agent applies the science control chip
-7. No flow logic was hardcoded. The API guided the conversation.
+4. API returns feed items with headlines, summaries, images, and controls
+5. If `guidance.next_best_actions` is present, agent uses it as a suggestion layer
+6. Otherwise the agent continues with the documented `/api/v1` endpoints directly
+7. User says "more science" — agent applies the science control chip
 
 ## Security Posture
 

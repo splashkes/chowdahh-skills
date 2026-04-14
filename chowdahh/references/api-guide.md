@@ -6,7 +6,7 @@ Media type: `application/json` (UTF-8)
 
 ## Response Envelope
 
-Every response uses `{data, guidance, meta}`:
+Successful responses use `{data, guidance, meta}`. The `guidance` block is present on most successful responses but is optional — `guidance.next_best_actions` may be absent.
 
 ```json
 {
@@ -22,7 +22,7 @@ Every response uses `{data, guidance, meta}`:
 }
 ```
 
-Errors follow the same envelope with an `error` block: `{ "error": { "code": "...", "message": "..." }, "guidance": {...}, "meta": {...} }`.
+Error responses use `{error, meta}` and may include a `guidance` block when contextual recovery actions are available. Clients should not assume `guidance` is present on error responses.
 
 Error codes: `invalid_request`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `validation_error`, `expired_session`, `invalid_control`, `processing`, `service_unavailable`.
 
@@ -33,6 +33,8 @@ Error codes: `invalid_request`, `unauthorized`, `forbidden`, `not_found`, `confl
 | Anonymous | none | 30/min | public reads, feed sessions, radio, search |
 | Person | `Authorization: Bearer ch_person_...` | 300/min | + replay, preferences, personalized feeds |
 | Curator | `Authorization: Bearer ch_cur_...` | 600/min | + high-volume submissions |
+
+Person and curator tokens are currently issued through the Chowdahh account system. There is no self-serve token creation endpoint at this time.
 
 Optional delegation headers: `X-Chowdahh-Agent-Id`, `X-Chowdahh-Agent-Name`, `X-Chowdahh-Acting-For`.
 
@@ -45,12 +47,13 @@ Optional delegation headers: `X-Chowdahh-Agent-Id`, `X-Chowdahh-Agent-Name`, `X-
 POST /api/v1/feed-sessions
 {"intent": "browse", "budget_minutes": 5, "include_controls": true}
 ```
-Returns: `session_id`, `cards[]`, `count`, `controls`.
+Returns: `session_id`, `items[]`, `count`, `controls`.
 
 **Get session**
 ```
 GET /api/v1/feed-sessions/{session_id}
 ```
+Returns session metadata only: `session_id`, `intent`, `delivery_mode`, `budget_minutes`, `position`, `card_count`, `state`. Does **not** return the original items or controls — clients should cache items from the create and send-more responses if they need to re-render.
 
 **Send more**
 ```
@@ -69,14 +72,14 @@ PATCH /api/v1/feed-sessions/{session_id}/controls
 ```
 GET /api/v1/streams/{slug}?limit=10
 ```
-Slugs: `top`, `latest`, `science`, `world`, `business`, `culture`, `good-news`, `local`.
+Discover available streams via `GET /api/v1/streams`. Default set includes: `top`, `latest`, `science`, `world`, `tech`, `business`, `health`, `culture`, `sports`, `good-news`, `local`.
 
 ### Search
 
 ```
 GET /api/v1/search?q=query&limit=10
 ```
-Searches topics, sources, curators, collections.
+Searches clusters by topic match. Results are card objects with `id`, `headline`, `summary`, etc. Results do not currently expose stable result types or drill-down IDs for topics or curators.
 
 ### Topic Drill-Down
 
@@ -91,6 +94,8 @@ Returns: summary, timeline, sources, related topics, canonical URL.
 GET /api/v1/curators/{curator_id}
 ```
 Returns: identity, specialties, top topics.
+
+Note: these endpoints require true internal identifiers. Anonymous search results do not reliably expose those identifiers, so clients should not assume a direct anonymous search → drill-down flow.
 
 ### Replay and Stats
 
@@ -113,6 +118,8 @@ POST /api/v1/radio-sessions
 Modes: `headlines`, `briefing`, `topic_run`.
 Returns: `radio_session_id`, `state`, `queue_length`, `tracks[]` (each with `audio_url`).
 
+Note: sessions may transition directly to `playing` on creation. Check `data.state` before sending control actions -- a `resume` on an already-playing session is harmless but unnecessary.
+
 **Get radio state**
 ```
 GET /api/v1/radio-sessions/{radio_session_id}
@@ -124,7 +131,7 @@ PATCH /api/v1/radio-sessions/{radio_session_id}
 {"action": "skip"}
 ```
 Actions: `pause`, `resume`, `skip`, `stop`.
-States: `ready` -> `playing` -> `paused` / `ended`.
+States: `ready` or `playing` (on create) -> `paused` / `ended`.
 
 **Stream audio**
 ```
@@ -139,6 +146,8 @@ POST /api/v1/signals
 [{"signal_type": "save", "card_id": "card_abc"}]
 ```
 Types: `seen`, `open`, `save`, `share`, `dismiss`, `source_open`.
+
+Note: invalid or unrecognized signal types are silently skipped. Callers should inspect `recorded` in the response body — a `200` status does not mean all signals were accepted.
 
 ### Preferences
 
@@ -165,6 +174,8 @@ GET /api/v1/submissions/{submission_id}
 ```
 Statuses: `queued`, `processing`, `ready`, `failed`.
 
+Note: collection submissions may succeed at the request level (201) while skipping individual items. Inspect `accepted`, `results[]`, and per-item statuses before treating the submission as complete.
+
 ### Feedback
 
 ```
@@ -172,6 +183,8 @@ POST /api/v1/feedback
 {"feedback_type": "content_request", "title": "More Canadian science coverage"}
 ```
 Types: `content_request`, `bug_report`, `feature_request`, `quality_report`.
+
+Note: feedback validation failures return `{error, meta}` without a `guidance` block.
 
 ## Worked Flows
 
@@ -191,20 +204,21 @@ Types: `content_request`, `bug_report`, `feature_request`, `quality_report`.
 
 ### Start radio
 1. `POST /api/v1/radio-sessions` with mode and duration
-2. `PATCH /api/v1/radio-sessions/{id}` with `{"action": "resume"}` to play
+2. Check `data.state` -- the session may already be `playing`
 3. `PATCH` with `skip`, `pause`, or `stop` to control
 
-## Card Object
+## Feed Item Object
 
 ```json
 {
-  "card_id": "...",
+  "id": "...",
   "headline": "TSMC accelerates 1.4nm timeline",
   "summary": "Taiwan Semiconductor...",
   "image_url": "https://...",
   "topics": ["science", "business"],
-  "source_count": 4,
-  "share_url": "https://chowdahh.com/x/abc",
-  "transformation_status": "synthesized"
+  "source_count": 4
 }
+```
+
+`image_url` may be absent on some items (notably search results). Do not assume all fields are present -- check before rendering.
 ```

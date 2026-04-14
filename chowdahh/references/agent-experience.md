@@ -38,10 +38,11 @@ The main intents should feel obvious:
 ### For radio
 
 1. Call `POST /api/v1/radio-sessions` with a `mode` and `duration_minutes`.
-2. Read `guidance.next_best_actions` for available controls.
-3. Control the session via `PATCH /api/v1/radio-sessions/{id}` with an `action`.
-4. Radio is session-based -- the server builds a queue from current content.
-5. Keep radio language separate from replay/history language.
+2. Check `data.state` -- sessions may start in `playing` directly.
+3. Read `guidance.next_best_actions` when present for available controls.
+4. Control the session via `PATCH /api/v1/radio-sessions/{id}` with an `action` (`skip`, `pause`, `stop`).
+5. Radio is session-based -- the server builds a queue from current content.
+6. Keep radio language separate from replay/history language.
 
 ### For submitting content
 
@@ -59,7 +60,7 @@ The main intents should feel obvious:
 
 - Agents should not need to understand internal ranking stages.
 - Every response should contain enough explanation for a human-facing restatement.
-- Controls and lenses should come back with counts or confidence so the agent can discuss them honestly.
+- Controls currently return `label`, `slug`, and `selected`. Counts and confidence are not yet exposed -- present controls honestly as available options without implying precision the API doesn't provide.
 - Status transitions should be explicit: `queued`, `processing`, `ready`, `failed`.
 - Feed sessions should be resumable enough that `send more` feels natural.
 

@@ -3,18 +3,18 @@ name: chowdahh
 description: >-
   Browse, search, and stream news and content from Chowdahh.
   Use when the user asks for news, today's headlines, what's happening,
-  a content feed, topic deep-dives, content search, replay of what they've
-  seen or saved, or to start Chowdahh Radio.
-  No API key required for anonymous access.
+  a content feed, content search, or to start Chowdahh Radio.
+  No API key required for anonymous access. Replay and preferences
+  require a person token.
 homepage: https://chowdahh.com
 metadata: {"clawdbot":{"emoji":"\ud83c\udf72","requires":{"bins":["curl"]}}}
 ---
 
 # Chowdahh
 
-A guided content system for people and agents. Browse feeds, search topics, drill into stories, replay history, and start Chowdahh Radio.
+A guided content system for people and agents. Browse feeds, search topics, and start Chowdahh Radio.
 
-No API key required. Anonymous access: 30 requests/minute.
+No API key required for anonymous access (feeds, search, streams, radio): 30 requests/minute. Replay, preferences, and personalized feeds require a person token (`Authorization: Bearer ch_person_...`): 300 requests/minute.
 
 ## Quick Start
 
@@ -33,13 +33,13 @@ curl -X POST https://chowdahh.com/api/v1/feed-sessions \
 
 ## The Guidance Envelope
 
-Every response uses `{data, guidance, meta}`. The `guidance` block tells you what happened and what to do next:
+Successful responses use `{data, guidance, meta}`. Error responses use `{error, meta}` and may omit `guidance`. The `guidance` block tells you what happened and suggests what to do next:
 
 ```json
 {
-  "data": { "session_id": "abc-123", "cards": [...], "count": 6, "controls": {...} },
+  "data": { "session_id": "abc-123", "items": [...], "count": 6, "controls": {...} },
   "guidance": {
-    "status_explanation": "Feed session started with 6 cards.",
+    "status_explanation": "Feed session started with 6 items.",
     "next_best_actions": [
       {
         "action_id": "send_more",
@@ -53,7 +53,7 @@ Every response uses `{data, guidance, meta}`. The `guidance` block tells you wha
 }
 ```
 
-Read `guidance.next_best_actions` after every call. The API teaches you the conversation flow.
+Read `guidance.next_best_actions` when present. Treat it as a suggestion layer, not a guaranteed contract, and keep using the documented `/api/v1` routes as the source of truth.
 
 ## Default Behavior
 
@@ -69,7 +69,7 @@ Read `guidance.next_best_actions` after every call. The API teaches you the conv
 - `POST /api/v1/feed-sessions/{id}/more` -- send more cards
 - `PATCH /api/v1/feed-sessions/{id}/controls` -- apply or remove control chips
 
-Each card includes `headline`, `summary`, `image_url`, `topics`, `source_count`, and `share_url`.
+Each item includes `id`, `headline`, `summary`, `image_url`, `topics`, `source_count`, and `share_url`.
 
 ## Public Streams
 
@@ -79,7 +79,7 @@ Browse without a session:
 curl -s 'https://chowdahh.com/api/v1/streams/top?limit=5'
 ```
 
-Available streams: `top`, `latest`, `science`, `world`, `business`, `culture`, `good-news`, `local`
+Discover available streams via `GET /api/v1/streams`. Default set includes: `top`, `latest`, `science`, `world`, `tech`, `business`, `health`, `culture`, `sports`, `good-news`, `local`
 
 ## Search
 
@@ -87,12 +87,14 @@ Available streams: `top`, `latest`, `science`, `world`, `business`, `culture`, `
 curl -s 'https://chowdahh.com/api/v1/search?q=climate&limit=5'
 ```
 
-Searches across topics, sources, curators, and collections.
+Searches clusters by topic match. Results are card objects — they do not currently expose result types or drill-down IDs for topics or curators.
 
 ## Drill Down
 
 - `GET /api/v1/topics/{topic_id}` -- topic summary, timeline, sources, related topics
 - `GET /api/v1/curators/{curator_id}` -- curator identity, specialties, top topics
+
+Note: these endpoints require true internal identifiers. Anonymous search results do not reliably expose topic or curator IDs, so a direct search-to-drilldown flow is not yet supported for anonymous clients.
 
 ## Replay and Stats
 
@@ -112,7 +114,8 @@ curl -X POST https://chowdahh.com/api/v1/radio-sessions \
 ```
 
 - Modes: `headlines`, `briefing`, `topic_run`
-- Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|resume|stop"}`
+- Sessions may start in `playing` state directly -- check `data.state` before sending control actions
+- Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`
 - Audio: fetch each track's `audio_url` for MP3
 
 Radio is not replay. Replay is card history. Radio is forward-looking audio.
@@ -129,6 +132,8 @@ curl -X POST https://chowdahh.com/api/v1/signals \
 
 Types: `seen`, `open`, `save`, `share`, `dismiss`, `source_open`
 
+Note: invalid or unrecognized signal types are silently skipped. Always inspect `recorded` in the response body — a `200` status does not guarantee signals were accepted.
+
 ## Authentication
 
 - **Anonymous**: no token needed, 30 req/min, public reads + feed sessions + radio
@@ -139,7 +144,7 @@ Types: `seen`, `open`, `save`, `share`, `dismiss`, `source_open`
 
 - Preserve attribution -- mention whether content is synthesized or source-led
 - Explain applied controls honestly
-- Use the guidance block to drive next steps, don't invent your own flow
+- Use `guidance.next_best_actions` as a suggestion layer when present, but always be prepared to fall back to the documented `/api/v1` endpoints directly
 
 ## Avoid
 
