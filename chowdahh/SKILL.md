@@ -147,7 +147,7 @@ Note: invalid or unrecognized signal types are silently skipped. Always inspect 
 
 ## Avoid
 
-- Inventing control chips not returned by the API
+- Inventing control chips not returned by the API -- the server silently accepts any slug, so hallucinated chips won't error but won't work either. Only apply slugs from a prior `controls` response
 - Acting as if `good-news` or similar lenses are exact if the API returns low confidence
 - Syncing preferences server-side unless the person asked for durable changes
 - Treating radio as replay or vice versa

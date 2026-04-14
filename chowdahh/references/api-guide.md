@@ -30,7 +30,7 @@ Error codes: `invalid_request`, `unauthorized`, `forbidden`, `not_found`, `confl
 
 | Mode | Header | Rate Limit | Access |
 |------|--------|------------|--------|
-| Anonymous | none | 30/min | public reads, feed sessions, radio, search |
+| Anonymous | none | 30/min | public reads, feed sessions, radio, search (derives stable `person_id` from IP+UA -- pseudonymous, not stateless) |
 | Person | `Authorization: Bearer ch_person_...` | 300/min | + replay, preferences, personalized feeds |
 | Curator | `Authorization: Bearer ch_cur_...` | 600/min | + high-volume submissions |
 
@@ -66,7 +66,9 @@ Returns next cards with position counter. Preserves controls.
 PATCH /api/v1/feed-sessions/{session_id}/controls
 {"apply": ["science"], "remove": ["good-news"]}
 ```
-Returns: `session_id`, `state`, `controls` (updated control object). Does **not** return reranked items -- call `POST .../more` after a control change to fetch items under the new ranking. The returned `controls` may not immediately reflect `selected` state for the applied slug.
+Returns: `session_id`, `state`, and a minimal `controls` object (currently only `rank_mode`). Does **not** return groups, options, selected flags, or reranked items. To see items under the new ranking, call `POST .../more` after this call.
+
+**Warning:** The server currently accepts any slug without validation -- invalid control names return `200` with "Controls updated" rather than `invalid_control`. Do not rely on the server to reject hallucinated chips. Agents must only apply slugs that appeared in a prior `controls` response from feed-session creation or send-more.
 
 ### Public Streams
 

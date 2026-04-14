@@ -6,6 +6,8 @@ These skills let your agent browse news, search topics, stream radio, submit con
 
 **Note:** All endpoints hit the live production API. There is no sandbox. Read-only calls (streams, search, feed sessions, radio) are safe to experiment with. Write endpoints (feedback, submissions, signals) create real records -- use them intentionally.
 
+**Privacy note:** Anonymous feed sessions derive a stable `person_id` from your IP and user-agent. This means anonymous usage is pseudonymous, not stateless -- the server can correlate requests across sessions. If that matters to your use case, be aware of it.
+
 ## What Makes This Different
 
 **The guidance envelope.** Most API responses include a `guidance` block that tells your agent what happened and suggests what to do next. `guidance.next_best_actions` is present on many responses but is optional — your agent should always be able to fall back to the documented `/api/v1` endpoints directly.
