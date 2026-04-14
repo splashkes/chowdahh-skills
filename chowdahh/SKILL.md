@@ -69,7 +69,7 @@ Read `guidance.next_best_actions` when present. Treat it as a suggestion layer, 
 - `POST /api/v1/feed-sessions/{id}/more` -- send more cards
 - `PATCH /api/v1/feed-sessions/{id}/controls` -- apply or remove control chips
 
-Each item includes `id`, `headline`, `summary`, `topics`, and `source_count`. `image_url` and `share_url` may be `null` or absent depending on the item and endpoint.
+Items typically include `id`, `headline`, `summary`, `topics`, and `source_count`. However, `headline` may be empty on some search results, and `image_url`, `share_url`, and `canonical_url` may be `null` or absent. Always handle missing or blank fields gracefully.
 
 ## Public Streams
 
@@ -89,12 +89,10 @@ curl -s 'https://chowdahh.com/api/v1/search?q=climate&limit=5'
 
 Searches clusters by topic match. Results are card objects — they do not currently expose result types or drill-down IDs for topics or curators.
 
-## Drill Down (Authenticated Only)
+## Drill Down
 
-- `GET /api/v1/topics/{topic_id}` -- topic summary, timeline, sources, related topics
-- `GET /api/v1/curators/{curator_id}` -- curator identity, specialties, top topics
-
-These endpoints require true internal identifiers that are not exposed in anonymous search results. Do not attempt to construct topic_id or curator_id from search output -- anonymous clients cannot currently follow a search-to-drilldown path. This flow requires a person token and feed session context where internal IDs are present.
+- `GET /api/v1/topics/{topic_name}` -- callable anonymously by topic name (e.g. `/api/v1/topics/NASA`). Returns a topic object but timeline may be empty for anonymous requests.
+- `GET /api/v1/curators/{curator_id}` -- requires a valid internal curator ID. No reliable anonymous path exists to discover curator IDs.
 
 ## Replay and Stats
 
@@ -114,10 +112,10 @@ curl -X POST https://chowdahh.com/api/v1/radio-sessions \
 ```
 
 - Modes: `headlines`, `briefing`, `topic_run`
-- Sessions may start in `playing` state directly -- check `data.state` before sending control actions
+- Sessions typically start in `playing` state directly
 - Retain `radio_session_id` from the create response -- GET and PATCH do not echo it back
-- Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`
-- Audio: fetch each track's `audio_url` for MP3
+- Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`. State transitions may not be synchronous -- `pause` may return while state remains `playing`
+- Audio URLs are relative paths (e.g. `/audio/abc-123`) -- prefix with `https://chowdahh.com`
 
 Radio is not replay. Replay is card history. Radio is forward-looking audio.
 

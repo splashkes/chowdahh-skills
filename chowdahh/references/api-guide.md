@@ -66,6 +66,7 @@ Returns next cards with position counter. Preserves controls.
 PATCH /api/v1/feed-sessions/{session_id}/controls
 {"apply": ["science"], "remove": ["good-news"]}
 ```
+Returns: `session_id`, `state`, `controls` (updated control object). Does **not** return reranked items -- call `POST .../more` after a control change to fetch items under the new ranking. The returned `controls` may not immediately reflect `selected` state for the applied slug.
 
 ### Public Streams
 
@@ -79,23 +80,21 @@ Discover available streams via `GET /api/v1/streams`. Default set includes: `top
 ```
 GET /api/v1/search?q=query&limit=10
 ```
-Searches clusters by topic match. Results are card objects with `id`, `headline`, `summary`, etc. Results do not currently expose stable result types or drill-down IDs for topics or curators.
+Searches clusters by topic match. Results are card objects with `id`, `headline`, `summary`, etc. Some results may have empty `headline` values or `null` for `image_url`, `share_url`, and `canonical_url`. Always handle missing fields gracefully. Results do not currently expose drill-down IDs for curators.
 
-### Topic Drill-Down (Authenticated)
+### Topic Drill-Down
 
 ```
-GET /api/v1/topics/{topic_id}
+GET /api/v1/topics/{topic_name}
 ```
-Returns: summary, timeline, sources, related topics, canonical URL.
+Callable anonymously using a topic name (e.g. `GET /api/v1/topics/NASA`). Returns a topic object but the `timeline` array may be empty for anonymous requests. Useful for checking whether a topic exists; richer payloads (timeline, sources, related topics) may require authenticated context.
 
-### Curator Info (Authenticated)
+### Curator Info
 
 ```
 GET /api/v1/curators/{curator_id}
 ```
-Returns: identity, specialties, top topics.
-
-**Important:** These endpoints require true internal identifiers. Anonymous search results do not expose `topic_id` or `curator_id` -- do not attempt to construct these from search output or item IDs. The search-to-drilldown path requires a person token and a feed session where internal identifiers are present in card objects.
+Returns: identity, specialties, top topics. Requires a valid internal curator ID -- anonymous search results do not currently expose curator IDs, so there is no reliable anonymous path to this endpoint.
 
 ### Replay and Stats
 
@@ -118,9 +117,11 @@ POST /api/v1/radio-sessions
 Modes: `headlines`, `briefing`, `topic_run`.
 Returns: `radio_session_id`, `state`, `queue_length`, `tracks[]` (each with `audio_url`).
 
-Note: sessions may transition directly to `playing` on creation. Check `data.state` before sending control actions -- a `resume` on an already-playing session is harmless but unnecessary.
+Sessions typically start in `playing` state directly. Check `data.state` before sending control actions.
 
 **Important:** Only the create response includes `radio_session_id`. GET and PATCH responses return `state`, `position`, `queue_length`, and `tracks` but do not echo the session ID back. Clients must retain the `radio_session_id` from the create call.
+
+**Audio URLs are relative paths** (e.g. `/audio/abc-123`). Prefix with the base URL to fetch: `https://chowdahh.com/audio/abc-123`.
 
 **Get radio state**
 ```
@@ -135,7 +136,8 @@ PATCH /api/v1/radio-sessions/{radio_session_id}
 ```
 Returns: `state`, `position`, `queue_length`, `tracks[]`.
 Actions: `pause`, `resume`, `skip`, `stop`.
-States: `ready` or `playing` (on create) -> `paused` / `ended`.
+
+**Note on state transitions:** Control actions return `200` but may not immediately change `state`. In particular, `pause` may return while `state` remains `playing`. Poll with GET if you need to confirm a transition. Do not build a strict state machine that requires `pause` -> `paused` to be synchronous.
 
 **Stream audio**
 ```
@@ -204,7 +206,8 @@ Note: feedback validation failures return `{error, meta}` without a `guidance` b
 
 ### Adjust controls
 1. `PATCH /api/v1/feed-sessions/{id}/controls` with `{"apply": ["science"]}`
-2. Session re-ranks with new controls applied
+2. Response confirms the control change but does not return reranked items
+3. `POST /api/v1/feed-sessions/{id}/more` to fetch items under the new ranking
 
 ### Start radio
 1. `POST /api/v1/radio-sessions` with mode and duration
@@ -224,5 +227,4 @@ Note: feedback validation failures return `{error, meta}` without a `guidance` b
 }
 ```
 
-`image_url` may be absent on some items (notably search results). Do not assume all fields are present -- check before rendering.
-```
+`headline` may be empty on some search results. `image_url`, `share_url`, and `canonical_url` may be `null` or absent. Always check before rendering.
