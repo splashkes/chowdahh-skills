@@ -42,6 +42,8 @@ curl -X PUT https://chowdahh.com/api/v1/preferences/{person_id} \
   -d '{"topics_followed": ["science", "canada"], "topics_avoided": ["celebrity-gossip"], "tone_preferences": ["uplifting"]}'
 ```
 
+To discover your `person_id`: create an authenticated feed session (`POST /api/v1/feed-sessions` with your person token) and read `person_id` from the response. The preferences endpoint enforces that the path `person_id` matches the token owner.
+
 ## Good Local-Memory Candidates
 
 - "avoid heavy news before 9am"

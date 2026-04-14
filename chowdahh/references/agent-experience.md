@@ -79,7 +79,7 @@ Instead:
 
 - Whether content was preserved or rewritten
 - Whether an item came from an original source or Chowdahh synthesis
-- Whether a control chip is real
+- Whether a control chip came from the API or was hallucinated (the server accepts any slug silently, so agents must only use slugs from prior responses)
 - Whether a preference is local-only or synced server-side
 
 ## Preference Memory Split

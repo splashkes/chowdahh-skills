@@ -6,7 +6,7 @@ Media type: `application/json` (UTF-8)
 
 ## Response Envelope
 
-Successful responses use `{data, guidance, meta}`. The `guidance` block is present on most successful responses but is optional — `guidance.next_best_actions` may be absent.
+Successful responses use `{data, meta}` and usually include `guidance`. The `guidance` block is common on successful responses but not universal, and `guidance.next_best_actions` is optional.
 
 ```json
 {
@@ -23,6 +23,11 @@ Successful responses use `{data, guidance, meta}`. The `guidance` block is prese
 ```
 
 Error responses use `{error, meta}` and may include a `guidance` block when contextual recovery actions are available. Clients should not assume `guidance` is present on error responses.
+
+Production note, tested on April 14, 2026:
+
+- `GET /api/v1/streams`, `GET /api/v1/search`, feed-session endpoints, radio endpoints, signals, and validation failures on feedback and submissions all matched this broad envelope model.
+- `GET /api/v1/replay` returned `{error, meta}` with `500 service_unavailable` even with a valid person token.
 
 Error codes: `invalid_request`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `validation_error`, `expired_session`, `invalid_control`, `processing`, `service_unavailable`.
 
@@ -79,6 +84,8 @@ GET /api/v1/streams/{slug}?limit=10
 ```
 Discover available streams via `GET /api/v1/streams`. Default set includes: `top`, `latest`, `science`, `world`, `tech`, `business`, `health`, `culture`, `sports`, `good-news`, `local`.
 
+Production note: the stream listing exposes stable `slug` values, but friendly `name` values may be `null`. Do not require `name` for discovery.
+
 ### Search
 
 ```
@@ -92,6 +99,8 @@ Searches clusters by topic match. Results are card objects with `id`, `headline`
 GET /api/v1/topics/{topic_name}
 ```
 Callable anonymously using a topic name (e.g. `GET /api/v1/topics/NASA`). Returns a topic object but the `timeline` array may be empty for anonymous requests. Useful for checking whether a topic exists; richer payloads (timeline, sources, related topics) may require authenticated context.
+
+Production note: the tested response shape was `data.topic` plus `data.timeline`, not a flattened topic object.
 
 ### Curator Info
 
@@ -110,6 +119,13 @@ Requires person token.
 ```
 GET /api/v1/stats/activity?period=this_week&group_by=topic
 ```
+
+Production note, tested on April 14, 2026:
+
+- `GET /api/v1/stats/activity` required a person token and returned data successfully.
+- The response came back as `data.stats.by_type`, even when `group_by=topic`, `group_by=type`, or `group_by=day` was requested.
+- The live keys were raw interaction names such as `category_on`, `category_off`, `load_more`, `music_play`, `music_listen`, `open`, and `show_full`.
+- `GET /api/v1/replay` returned `500 service_unavailable` with a valid person token.
 
 ### Radio
 
@@ -149,6 +165,8 @@ GET /audio/{track_id}
 ```
 Returns `audio/mpeg`. Synthesized on first request, cached after.
 
+Production note: use `GET` to test audio availability. A `HEAD` request returned `405` during live testing, while `GET` returned `200 audio/mpeg`.
+
 ### Signals
 
 ```
@@ -166,6 +184,8 @@ GET /api/v1/preferences/{person_id}
 PUT /api/v1/preferences/{person_id}
 ```
 Requires person token matching the person_id.
+
+To discover your `person_id`: create an authenticated feed session (`POST /api/v1/feed-sessions` with your person token) and read `person_id` from the response.
 
 ### Submissions
 

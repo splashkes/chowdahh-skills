@@ -4,13 +4,13 @@ I built Chowdahh for myself -- a guided content system that processes news and c
 
 These skills let your agent browse news, search topics, stream radio, submit content, and steer preferences -- all through a live production API at [chowdahh.com](https://chowdahh.com). I'm sharing the token processing and synthesis capacity rather than keeping it to myself. If your agent finds it useful, that's the whole point.
 
-**Note:** All endpoints hit the live production API. There is no sandbox. Read-only calls (streams, search, feed sessions, radio) are safe to experiment with. Write endpoints (feedback, submissions, signals) create real records -- use them intentionally.
+**Note:** All endpoints hit the live production API. There is no sandbox. Read-only calls (streams, search, feed sessions, radio) are safe to experiment with. Write endpoints (feedback, submissions, signals) create real records or counters -- use them intentionally.
 
 **Privacy note:** Anonymous feed sessions derive a stable `person_id` from your IP and user-agent. This means anonymous usage is pseudonymous, not stateless -- the server can correlate requests across sessions. If that matters to your use case, be aware of it.
 
 ## What Makes This Different
 
-**The guidance envelope.** Most API responses include a `guidance` block that tells your agent what happened and suggests what to do next. `guidance.next_best_actions` is present on many responses but is optional — your agent should always be able to fall back to the documented `/api/v1` endpoints directly.
+**The guidance envelope.** Most API responses include a `guidance` block that tells your agent what happened. Some responses also include `guidance.next_best_actions`, but those hints are optional. Your runner should always treat the documented `/api/v1` endpoints as the source of truth and use guidance only as a suggestion layer.
 
 ```json
 {
@@ -27,7 +27,7 @@ These skills let your agent browse news, search topics, stream radio, submit con
 }
 ```
 
-**AX-first design.** Agent Experience is the primary design target, not an afterthought bolted onto a human UI. The API surface is small (12 endpoints), intent-shaped, and honest about confidence and controls. We take AX seriously: every response is inspectable, every control chip is real, and every piece of content preserves its source attribution.
+**AX-first design.** Agent Experience is the primary design target, not an afterthought bolted onto a human UI. The API surface is small (12 endpoints), intent-shaped, and honest about what it can and can't do. We take AX seriously: every response is inspectable, controls come from the API not the agent's imagination, and every piece of content preserves its source attribution.
 
 ## Install
 
@@ -49,6 +49,15 @@ No API key required. Anonymous access: 30 requests/minute.
 curl -s 'https://chowdahh.com/api/v1/streams/top?limit=3' | jq .
 ```
 
+## Start Here If You Want To Run It
+
+Read [chowdahh/references/runner-playbook.md](./chowdahh/references/runner-playbook.md) first. It is the runner-facing guide for the live production API and calls out the behaviors verified on April 14, 2026, including:
+
+- which endpoints are safe to try anonymously
+- which authenticated endpoints actually worked with a person token
+- which documented flows are currently incomplete or broken in production
+- what fields are optional or unexpectedly null in real responses
+
 ## The Four Skills
 
 | Skill | Emoji | What It Does |
@@ -66,7 +75,7 @@ The adoption path mirrors how people actually use content systems: **read** firs
 2. User says "what's happening today?"
 3. Agent calls `POST /api/v1/feed-sessions` with `{"intent": "browse", "budget_minutes": 5}`
 4. API returns feed items with headlines, summaries, images, and controls
-5. If `guidance.next_best_actions` is present, agent uses it as a suggestion layer
+5. If `guidance.next_best_actions` is present, agent may use it as a suggestion layer
 6. Otherwise the agent continues with the documented `/api/v1` endpoints directly
 7. User says "more science" — agent applies the science control chip
 
@@ -81,4 +90,5 @@ The adoption path mirrors how people actually use content systems: **read** firs
 ## More
 
 - Full API docs, JS SDK, and runnable examples: [chowdahh_recipes](https://github.com/splashkes/chowdahh_recipes)
+- Tested runner guide for this repo: [chowdahh/references/runner-playbook.md](./chowdahh/references/runner-playbook.md)
 - Live site: [chowdahh.com](https://chowdahh.com)
