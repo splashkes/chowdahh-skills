@@ -81,21 +81,21 @@ GET /api/v1/search?q=query&limit=10
 ```
 Searches clusters by topic match. Results are card objects with `id`, `headline`, `summary`, etc. Results do not currently expose stable result types or drill-down IDs for topics or curators.
 
-### Topic Drill-Down
+### Topic Drill-Down (Authenticated)
 
 ```
 GET /api/v1/topics/{topic_id}
 ```
 Returns: summary, timeline, sources, related topics, canonical URL.
 
-### Curator Info
+### Curator Info (Authenticated)
 
 ```
 GET /api/v1/curators/{curator_id}
 ```
 Returns: identity, specialties, top topics.
 
-Note: these endpoints require true internal identifiers. Anonymous search results do not reliably expose those identifiers, so clients should not assume a direct anonymous search → drill-down flow.
+**Important:** These endpoints require true internal identifiers. Anonymous search results do not expose `topic_id` or `curator_id` -- do not attempt to construct these from search output or item IDs. The search-to-drilldown path requires a person token and a feed session where internal identifiers are present in card objects.
 
 ### Replay and Stats
 
@@ -120,16 +120,20 @@ Returns: `radio_session_id`, `state`, `queue_length`, `tracks[]` (each with `aud
 
 Note: sessions may transition directly to `playing` on creation. Check `data.state` before sending control actions -- a `resume` on an already-playing session is harmless but unnecessary.
 
+**Important:** Only the create response includes `radio_session_id`. GET and PATCH responses return `state`, `position`, `queue_length`, and `tracks` but do not echo the session ID back. Clients must retain the `radio_session_id` from the create call.
+
 **Get radio state**
 ```
 GET /api/v1/radio-sessions/{radio_session_id}
 ```
+Returns: `state`, `position`, `queue_length`, `tracks[]`.
 
 **Control radio**
 ```
 PATCH /api/v1/radio-sessions/{radio_session_id}
 {"action": "skip"}
 ```
+Returns: `state`, `position`, `queue_length`, `tracks[]`.
 Actions: `pause`, `resume`, `skip`, `stop`.
 States: `ready` or `playing` (on create) -> `paused` / `ended`.
 

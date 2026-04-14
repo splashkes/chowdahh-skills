@@ -25,6 +25,8 @@ Use this skill when a person wants to contribute a story, poem, image, audio, vi
 
 ## Endpoints
 
+**These hit the live production API. There is no sandbox. Each call creates a real submission record.**
+
 **Single item:**
 ```bash
 curl -X POST https://chowdahh.com/api/v1/submissions/items \

@@ -69,7 +69,7 @@ Read `guidance.next_best_actions` when present. Treat it as a suggestion layer, 
 - `POST /api/v1/feed-sessions/{id}/more` -- send more cards
 - `PATCH /api/v1/feed-sessions/{id}/controls` -- apply or remove control chips
 
-Each item includes `id`, `headline`, `summary`, `image_url`, `topics`, `source_count`, and `share_url`.
+Each item includes `id`, `headline`, `summary`, `topics`, and `source_count`. `image_url` and `share_url` may be `null` or absent depending on the item and endpoint.
 
 ## Public Streams
 
@@ -89,12 +89,12 @@ curl -s 'https://chowdahh.com/api/v1/search?q=climate&limit=5'
 
 Searches clusters by topic match. Results are card objects — they do not currently expose result types or drill-down IDs for topics or curators.
 
-## Drill Down
+## Drill Down (Authenticated Only)
 
 - `GET /api/v1/topics/{topic_id}` -- topic summary, timeline, sources, related topics
 - `GET /api/v1/curators/{curator_id}` -- curator identity, specialties, top topics
 
-Note: these endpoints require true internal identifiers. Anonymous search results do not reliably expose topic or curator IDs, so a direct search-to-drilldown flow is not yet supported for anonymous clients.
+These endpoints require true internal identifiers that are not exposed in anonymous search results. Do not attempt to construct topic_id or curator_id from search output -- anonymous clients cannot currently follow a search-to-drilldown path. This flow requires a person token and feed session context where internal IDs are present.
 
 ## Replay and Stats
 
@@ -115,6 +115,7 @@ curl -X POST https://chowdahh.com/api/v1/radio-sessions \
 
 - Modes: `headlines`, `briefing`, `topic_run`
 - Sessions may start in `playing` state directly -- check `data.state` before sending control actions
+- Retain `radio_session_id` from the create response -- GET and PATCH do not echo it back
 - Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`
 - Audio: fetch each track's `audio_url` for MP3
 

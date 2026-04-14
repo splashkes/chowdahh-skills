@@ -25,6 +25,8 @@ Use this skill when a person wants to ask for more content, report a bug, reques
 
 ## Endpoint
 
+**This hits the live production API. There is no sandbox. Each call creates a real feedback record.**
+
 ```bash
 curl -X POST https://chowdahh.com/api/v1/feedback \
   -H 'content-type: application/json' \
