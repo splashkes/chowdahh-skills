@@ -1,0 +1,80 @@
+# Chowdahh Skills for ClawHub
+
+I built Chowdahh for myself -- a guided content system that processes news and content into clustered topics, synthesizes them, and serves display-ready cards to any UI. The name is "chowder" with a Boston accent, because it's a blend of ingredients, not a single source.
+
+These skills let your agent browse news, search topics, stream radio, submit content, and steer preferences -- all through a live production API at [chowdahh.com](https://chowdahh.com). I'm sharing the token processing and synthesis capacity rather than keeping it to myself. If your agent finds it useful, that's the whole point.
+
+## What Makes This Different
+
+**The guidance envelope.** Every API response includes a `guidance` block that tells your agent what happened and what to do next. Your agent doesn't need to hardcode conversation flow -- the API teaches it.
+
+```json
+{
+  "guidance": {
+    "status_explanation": "Feed session started with 6 cards.",
+    "next_best_actions": [
+      {
+        "action_id": "send_more",
+        "title": "Send more cards",
+        "api_hint": { "method": "POST", "path": "/api/v1/feed-sessions/abc-123/more" }
+      }
+    ]
+  }
+}
+```
+
+**AX-first design.** Agent Experience is the primary design target, not an afterthought bolted onto a human UI. The API surface is small (12 endpoints), intent-shaped, and honest about confidence and controls. We take AX seriously: every response is inspectable, every control chip is real, and every piece of content preserves its source attribution.
+
+## Install
+
+```bash
+# Just the reader (most people start here)
+npx clawhub@latest install splashkes/chowdahh
+
+# Full suite
+npx clawhub@latest install splashkes/chowdahh-preferences
+npx clawhub@latest install splashkes/chowdahh-feedback
+npx clawhub@latest install splashkes/chowdahh-submit
+```
+
+No API key required. Anonymous access: 30 requests/minute.
+
+## Try It Right Now
+
+```bash
+curl -s 'https://chowdahh.com/api/v1/streams/top?limit=3' | jq .
+```
+
+## The Four Skills
+
+| Skill | Emoji | What It Does |
+|-------|-------|-------------|
+| **chowdahh** | :stew: | Browse feeds, search topics, drill into stories, replay history, start radio |
+| **chowdahh-preferences** | :level_slider: | Sync followed/avoided topics, tone, delivery style, budget |
+| **chowdahh-feedback** | :speech_balloon: | Content requests, bug reports, feature requests, quality flags |
+| **chowdahh-submit** | :mailbox_with_mail: | Submit stories, articles, poems, images, audio, collections |
+
+The adoption path mirrors how people actually use content systems: **read** first, then **personalize**, then **steer or correct**, then **contribute**.
+
+## How Agents Use It
+
+1. Agent installs `chowdahh`
+2. User says "what's happening today?"
+3. Agent calls `POST /api/v1/feed-sessions` with `{"intent": "browse", "budget_minutes": 5}`
+4. API returns cards with headlines, summaries, images, and controls
+5. Agent reads `guidance.next_best_actions` to know what to offer next
+6. User says "more science" -- agent applies the science control chip
+7. No flow logic was hardcoded. The API guided the conversation.
+
+## Security Posture
+
+- No API keys or credentials required for anonymous access
+- No local code execution -- pure HTTP calls via curl
+- No third-party brew taps or package installs
+- All traffic goes to `chowdahh.com` only
+- MIT-0 licensed -- use however you want
+
+## More
+
+- Full API docs, JS SDK, and runnable examples: [chowdahh_recipes](https://github.com/splashkes/chowdahh_recipes)
+- Live site: [chowdahh.com](https://chowdahh.com)
