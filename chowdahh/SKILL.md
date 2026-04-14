@@ -55,6 +55,8 @@ Successful responses use `{data, guidance, meta}`. Error responses use `{error, 
 
 Read `guidance.next_best_actions` when present. Treat it as a suggestion layer, not a guaranteed contract, and keep using the documented `/api/v1` routes as the source of truth.
 
+Before running a new integration from scratch, read `references/runner-playbook.md`. It captures the production behaviors verified on April 14, 2026, including the endpoints that worked anonymously, the person-token behavior that was actually observed, and the flows that are still incomplete for a new runner.
+
 ## Default Behavior
 
 1. Start with `POST /api/v1/feed-sessions` and keep the first request minimal: `intent`, `budget_minutes`, `include_controls`.
@@ -79,7 +81,9 @@ Browse without a session:
 curl -s 'https://chowdahh.com/api/v1/streams/top?limit=5'
 ```
 
-Discover available streams via `GET /api/v1/streams`. Default set includes: `top`, `latest`, `science`, `world`, `tech`, `business`, `health`, `culture`, `sports`, `good-news`, `local`
+Discover available streams via `GET /api/v1/streams`. Default set includes: `top`, `latest`, `science`, `world`, `tech`, `business`, `health`, `culture`, `sports`, `good-news`, `local`.
+
+Production note: the live `streams` listing currently exposes reliable `slug` values, but friendly `name` values may be `null`. Use the slug as the stable key.
 
 ## Search
 
@@ -87,11 +91,11 @@ Discover available streams via `GET /api/v1/streams`. Default set includes: `top
 curl -s 'https://chowdahh.com/api/v1/search?q=climate&limit=5'
 ```
 
-Searches clusters by topic match. Results are card objects — they do not currently expose result types or drill-down IDs for topics or curators.
+Searches clusters by topic match. Results are card objects — they do not currently expose stable result types or drill-down IDs for topics or curators, and some results may have empty headlines or `null` URL fields.
 
 ## Drill Down
 
-- `GET /api/v1/topics/{topic_name}` -- callable anonymously by topic name (e.g. `/api/v1/topics/NASA`). Returns a topic object but timeline may be empty for anonymous requests.
+- `GET /api/v1/topics/{topic_name}` -- callable anonymously by topic name (e.g. `/api/v1/topics/NASA`). Returns `data.topic` (string) and `data.timeline` (array, often empty). This is a shallow lookup, not a rich drill-down.
 - `GET /api/v1/curators/{curator_id}` -- requires a valid internal curator ID. No reliable anonymous path exists to discover curator IDs.
 
 ## Replay and Stats
@@ -100,6 +104,8 @@ Requires a person token (`Authorization: Bearer ch_person_...`):
 
 - `GET /api/v1/replay?period=this_month` -- cards seen, opened, saved, shared, dismissed
 - `GET /api/v1/stats/activity` -- aggregates over signals
+
+Production note: `GET /api/v1/stats/activity` always returns `data.stats.by_type` regardless of `group_by` parameter. `GET /api/v1/replay` works with a valid person token (fixed April 14, 2026).
 
 ## Chowdahh Radio
 
@@ -116,6 +122,7 @@ curl -X POST https://chowdahh.com/api/v1/radio-sessions \
 - Retain `radio_session_id` from the create response -- GET and PATCH do not echo it back
 - Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`. State transitions may not be synchronous -- `pause` may return while state remains `playing`
 - Audio URLs are relative paths (e.g. `/audio/abc-123`) -- prefix with `https://chowdahh.com`
+- Track `title` is not guaranteed. The live API returned `null` for tested tracks.
 
 Radio is not replay. Replay is card history. Radio is forward-looking audio.
 
@@ -136,7 +143,7 @@ Note: invalid or unrecognized signal types are silently skipped. Always inspect 
 ## Authentication
 
 - **Anonymous**: no token needed, 30 req/min, public reads + feed sessions + radio
-- **Person token**: `Authorization: Bearer ch_person_...`, 300 req/min, replay + preferences + personalized feeds
+- **Person token**: `Authorization: Bearer ch_person_...`, 300 req/min, intended for replay + preferences + personalized feeds. See `references/runner-playbook.md` for current production status.
 - **Curator token**: `Authorization: Bearer ch_cur_...`, 600 req/min, high-volume submissions
 
 ## Response Style

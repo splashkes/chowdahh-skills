@@ -98,9 +98,7 @@ Searches clusters by topic match. Results are card objects with `id`, `headline`
 ```
 GET /api/v1/topics/{topic_name}
 ```
-Callable anonymously using a topic name (e.g. `GET /api/v1/topics/NASA`). Returns a topic object but the `timeline` array may be empty for anonymous requests. Useful for checking whether a topic exists; richer payloads (timeline, sources, related topics) may require authenticated context.
-
-Production note: the tested response shape was `data.topic` plus `data.timeline`, not a flattened topic object.
+Callable anonymously using a topic name (e.g. `GET /api/v1/topics/NASA`). Returns `data.topic` (the topic name as a string) and `data.timeline` (array, often empty). This is a shallow lookup -- useful for confirming a topic exists, but do not expect a rich object with sources, related topics, or summaries.
 
 ### Curator Info
 
@@ -125,7 +123,7 @@ Production note, tested on April 14, 2026:
 - `GET /api/v1/stats/activity` required a person token and returned data successfully.
 - The response came back as `data.stats.by_type`, even when `group_by=topic`, `group_by=type`, or `group_by=day` was requested.
 - The live keys were raw interaction names such as `category_on`, `category_off`, `load_more`, `music_play`, `music_listen`, `open`, and `show_full`.
-- `GET /api/v1/replay` returned `500 service_unavailable` with a valid person token.
+- `GET /api/v1/replay` now works with a valid person token (fixed April 14, 2026).
 
 ### Radio
 
@@ -185,7 +183,7 @@ PUT /api/v1/preferences/{person_id}
 ```
 Requires person token matching the person_id.
 
-To discover your `person_id`: create an authenticated feed session (`POST /api/v1/feed-sessions` with your person token) and read `person_id` from the response.
+To discover your `person_id`: create an authenticated feed session, then call `GET /api/v1/feed-sessions/{session_id}` with your person token -- the GET response includes `person_id`. Note: the initial POST create response may return `person_id: null`; use the GET follow-up.
 
 ### Submissions
 
