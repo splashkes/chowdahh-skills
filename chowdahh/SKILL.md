@@ -112,7 +112,7 @@ curl -X POST https://chowdahh.com/api/v1/radio-sessions \
 ```
 
 - Modes: `headlines`, `briefing`, `topic_run`
-- Sessions typically start in `playing` state directly
+- Sessions may start as `ready` or `playing` -- always check `data.state` and send `{"action": "resume"}` if `ready`
 - Retain `radio_session_id` from the create response -- GET and PATCH do not echo it back
 - Control: `PATCH /api/v1/radio-sessions/{id}` with `{"action": "skip|pause|stop"}`. State transitions may not be synchronous -- `pause` may return while state remains `playing`
 - Audio URLs are relative paths (e.g. `/audio/abc-123`) -- prefix with `https://chowdahh.com`

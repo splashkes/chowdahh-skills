@@ -68,7 +68,9 @@ PATCH /api/v1/feed-sessions/{session_id}/controls
 ```
 Returns: `session_id`, `state`, and a minimal `controls` object (currently only `rank_mode`). Does **not** return groups, options, selected flags, or reranked items. To see items under the new ranking, call `POST .../more` after this call.
 
-**Warning:** The server currently accepts any slug without validation -- invalid control names return `200` with "Controls updated" rather than `invalid_control`. Do not rely on the server to reject hallucinated chips. Agents must only apply slugs that appeared in a prior `controls` response from feed-session creation or send-more.
+**There is no reliable way to confirm a control took effect from this response alone.** Both valid and invalid slugs produce the same minimal response. Agents should: (1) only apply slugs from a prior `controls` response, (2) treat the PATCH as fire-and-forget, and (3) verify the effect by inspecting items from the next `.../more` call.
+
+**Warning:** The server currently accepts any slug without validation -- invalid control names return `200` with "Controls updated" rather than `invalid_control`. Do not rely on the server to reject hallucinated chips.
 
 ### Public Streams
 
@@ -119,7 +121,7 @@ POST /api/v1/radio-sessions
 Modes: `headlines`, `briefing`, `topic_run`.
 Returns: `radio_session_id`, `state`, `queue_length`, `tracks[]` (each with `audio_url`).
 
-Sessions typically start in `playing` state directly. Check `data.state` before sending control actions.
+Sessions may start as `ready` or `playing` -- the initial state is not guaranteed. Always check `data.state` and send `{"action": "resume"}` if `ready`.
 
 **Important:** Only the create response includes `radio_session_id`. GET and PATCH responses return `state`, `position`, `queue_length`, and `tracks` but do not echo the session ID back. Clients must retain the `radio_session_id` from the create call.
 
