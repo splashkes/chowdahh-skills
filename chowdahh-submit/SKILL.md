@@ -48,6 +48,8 @@ curl https://chowdahh.com/api/v1/submissions/{submission_id}
 
 Statuses: `queued`, `processing`, `ready`, `failed`.
 
+Production note: invalid single-item submissions returned `400 validation_error` in live testing, but invalid collection submissions returned `201` with `accepted: 0` and per-item `skipped` results. Inspect the body, not just the status code.
+
 ## Before Submitting
 
 Restate to the person:

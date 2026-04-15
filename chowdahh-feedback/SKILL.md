@@ -35,6 +35,8 @@ curl -X POST https://chowdahh.com/api/v1/feedback \
 
 Required fields: `feedback_type` and `title`.
 
+Production note: validation failures currently return `{error, meta}` without a `guidance` block. Do not assume the success envelope on invalid feedback submissions.
+
 ## Content Requests
 
 Use when the person wants more or different content:
